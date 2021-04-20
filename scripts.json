@@ -1,0 +1,15 @@
+{
+  "$schema": "https://deno.land/x/denon@2.4.7/schema.json",
+  "scripts": {
+    "test": {
+      "cmd": "deno test --no-check test.ts",
+      "desc": "run tests",
+      "importmap": "import_map.json"
+    }
+  },
+  "logger": {
+    "fullscreen": true,
+    "quiet": true,
+    "debug": false
+  }
+}
