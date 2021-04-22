@@ -1,4 +1,4 @@
-import { assertEquals, unreachable } from "asserts";
+import { assertEquals, assertNotEquals, unreachable } from "asserts";
 
 import { AutoRun, branchStage, Pipeline, protectFromReturn } from "./mod.ts";
 
@@ -14,7 +14,7 @@ Deno.test({
     pipelineWithStagesAddedByMethod.put(null);
     pipelineWithStagesAddedByMethod.put(null);
 
-    const pipelineWithStagesAddedViaConstructorArgs = new Pipeline<unknown>(
+    const pipelineWithStagesAddedViaConstructorArgs = new Pipeline(
       stageThatNeverExecutes,
       stageThatNeverExecutes,
       stageThatNeverExecutes,
@@ -49,6 +49,48 @@ Deno.test({
       for await (const i of input) {
         assertEquals(i, pipelineInput[step]);
         step++;
+        yield i;
+      }
+    }
+  },
+});
+
+Deno.test({
+  name: "`Pipeline.fork` runs several instances of pipeline independently",
+  async fn() {
+    const p1 = new Pipeline(countTimesCalled);
+    const p2 = p1.fork();
+    const p3 = p2.fork();
+
+    for (const p of [p1, p2, p3]) {
+      p.put(-1);
+      const { value: timesCalled } = await nextAsyncIteration(p);
+      assertEquals(timesCalled, 1);
+    }
+
+    async function* countTimesCalled(input: AsyncIterable<number>) {
+      let timesCalled = 0;
+      for await (const _ of input) {
+        timesCalled++;
+        yield timesCalled;
+      }
+    }
+  },
+});
+
+Deno.test({
+  name: "`Pipeline.put(…)` ignores `undefined` value",
+  async fn() {
+    const pipelineInput = [undefined, undefined, undefined, 1];
+    const p = new Pipeline(test);
+    for (const v of pipelineInput) {
+      p.put(v);
+    }
+    const { value } = await nextAsyncIteration(p);
+    assertEquals(value, pipelineInput[pipelineInput.length - 1]);
+    async function* test(input: AsyncIterable<unknown>) {
+      for await (const i of input) {
+        assertNotEquals(i, undefined);
         yield i;
       }
     }
@@ -118,6 +160,41 @@ Deno.test({
       for await (const i of input) {
         agg += i.value;
         yield { ...i, value: agg };
+      }
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "`branchStage(...)` does not emit `null` values received from actual branches",
+  async fn() {
+    type Msg = { id?: number; value: number } | null;
+    const pipelineInput: Msg[] = [
+      { id: 0, value: 1 },
+      { id: 1, value: 10 },
+      { id: 0, value: 100 },
+      { id: 1, value: 1000 },
+    ];
+    const p = new Pipeline<Msg>();
+    p.addStage(
+      branchStage(
+        (m: Msg) => m?.id,
+        new Pipeline<Msg>(test),
+      ),
+    );
+    const received: Msg[] = [];
+    for (const i of pipelineInput) {
+      p.put(i);
+      const { value } = await nextAsyncIteration(p);
+      received.push(value);
+    }
+    assertEquals(received, pipelineInput);
+
+    async function* test(input: AsyncIterable<Msg>) {
+      for await (const i of input) {
+        yield null;
+        yield i;
       }
     }
   },
