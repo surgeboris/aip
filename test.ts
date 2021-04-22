@@ -127,25 +127,26 @@ Deno.test({
       { id: 1, value: 1000 },
     ];
     let received: Msg[] = [];
+    const branchPl = new Pipeline<Msg>(twice, sum);
 
-    const noBranchPl = new Pipeline<Msg>();
-    noBranchPl.addStage(twice).addStage(sum);
+    const withoutBranchStage = new Pipeline<Msg>();
+    withoutBranchStage.addPipeline(branchPl);
     received = [];
     for (const i of pipelineInput) {
-      noBranchPl.put(i);
-      const { value } = await nextAsyncIteration(noBranchPl);
+      withoutBranchStage.put(i);
+      const { value } = await nextAsyncIteration(withoutBranchStage);
       received.push(value);
     }
     assertEquals(received.map((m) => m.value), [2, 22, 222, 2222]);
 
-    const branchPl = new Pipeline<Msg>();
-    branchPl.addStage(
-      branchStage((m: Msg) => m.id, new Pipeline<Msg>(twice, sum)),
+    const withBranchStage = new Pipeline<Msg>();
+    withBranchStage.addStage(
+      branchStage((m: Msg) => m.id, branchPl),
     );
     received = [];
     for (const i of pipelineInput) {
-      branchPl.put(i);
-      const { value } = await nextAsyncIteration(branchPl);
+      withBranchStage.put(i);
+      const { value } = await nextAsyncIteration(withBranchStage);
       received.push(value);
     }
     assertEquals(received.map((m) => m.value), [2, 20, 202, 2020]);

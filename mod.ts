@@ -36,6 +36,11 @@ export class Pipeline<TMsg> {
     this._stages.push(stage);
     return this; // several `.addStage(…)` can be chained
   }
+  addPipeline(pipeline: Pipeline<TMsg>) {
+    this._pipelineEnd = null;
+    this._stages.push(...pipeline._stages);
+    return this; // several `.addPipeline(…)` can be chained
+  }
   put = (msg: TMsg) => {
     this._pipelineStart.send(msg);
     // `return this` wouldn't allow TypeScript to use `.put` as an event handler
