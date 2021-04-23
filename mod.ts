@@ -55,8 +55,11 @@ export class Pipeline<TMsg> {
  */
 export function branchStage<TMsg>(
   pickKey: (msg: TMsg) => unknown,
-  branchPipeline: Pipeline<TMsg>,
+  branchArg: Stage<TMsg> | Pipeline<TMsg>,
 ): Stage<TMsg> {
+  const branchPipeline = branchArg instanceof Pipeline
+    ? branchArg
+    : new Pipeline(branchArg);
   const handleBranchesKey: unknown = Symbol("handleBranchesKey");
   return async function* branchStageImpl(input) {
     async function* handleBranches() {

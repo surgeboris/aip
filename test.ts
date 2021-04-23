@@ -178,12 +178,7 @@ Deno.test({
       { id: 1, value: 1000 },
     ];
     const p = new Pipeline<Msg>();
-    p.addStage(
-      branchStage(
-        (m: Msg) => m?.id,
-        new Pipeline<Msg>(test),
-      ),
-    );
+    p.addStage(branchStage((m: Msg) => m?.id, test));
     const received: Msg[] = [];
     for (const i of pipelineInput) {
       p.put(i);
