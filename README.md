@@ -25,7 +25,7 @@ top.
 ## Documentation
 
 Library API description is available on
-[Deno documentation viewer](https://doc.deno.land/https/deno.land/x/aip@v1.1.0/mod.ts).
+[Deno documentation viewer](https://doc.deno.land/https/deno.land/x/aip/mod.ts).
 But since this library is so small you probably better off just taking a look at
 the source code (it's less than 300 lines, fairly readable and contains comments
 on most important parts of API). Tests might also be useful to look at as well.
