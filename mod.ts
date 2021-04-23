@@ -8,10 +8,10 @@ export interface Stage<TMsg> {
 }
 
 /**
- * Represents sum of multiple `addStage(…)`'s acting on messages `.put(…)` into it.
- * `.fork(…)` can be used to have multiple instances of the same set of `Stage`'s.
- * No stage execution occur unless async iteration happens on the pipeline
- * (and values are `.put(…)` into it).
+ * Represents sum of multiple `.addStage(…)`'s and/or `.addPipeline(…)`''s
+ * acting on messages `.put(…)` into it. `.fork(…)` can be used to have multiple
+ * instances of the same set of `Stage`'s. No stage execution occur unless async
+ * iteration happens on the pipeline (and values are `.put(…)` into it).
  */
 export class Pipeline<TMsg> {
   private _stages: Array<Stage<TMsg>>;
@@ -51,7 +51,7 @@ export class Pipeline<TMsg> {
 }
 
 /**
- * Produces a `Stage` that runs `Pipeline` for each unique `.pickKey(i)` result.
+ * Produces a `Stage` that runs `branchArg` for each unique `.pickKey(…)` result.
  */
 export function branchStage<TMsg>(
   pickKey: (msg: TMsg) => unknown,
@@ -155,9 +155,9 @@ class Channel<TMsg> {
   private async *_input() {
     while (true) {
       while (this._queue.length) {
-        const e = this._queue.shift();
-        if (e === undefined) continue;
-        yield e;
+        const msg = this._queue.shift();
+        if (msg === undefined) continue;
+        yield msg;
       }
       await this._pauseController.pause();
     }
