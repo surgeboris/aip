@@ -221,7 +221,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "`AutoRun.stop(..)` prevents execution if called when there's no values to process",
+    "`AutoRun.stop(…)` prevents execution if called when there's no values to process",
   async fn() {
     let lastInputPut = -1;
     let lastInputConsumed = -1;
@@ -251,7 +251,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "`AutoRun.stop(..)` allows to process first value if called after it was scheduled`",
+    "`AutoRun.stop(…)` allows to process first value if called after it was scheduled`",
   async fn() {
     let lastInputPut = -1;
     let lastInputConsumed = -1;
@@ -266,8 +266,7 @@ Deno.test({
     p.put(++lastInputPut);
     p.put(++lastInputPut);
     p.put(++lastInputPut);
-    whenThereAreValuesToProcess.stop();
-    await whenThereAreValuesToProcess.stopped;
+    await whenThereAreValuesToProcess.stop();
     assertEquals(lastInputConsumed, 1);
 
     async function* test(input: AsyncIterable<number>) {

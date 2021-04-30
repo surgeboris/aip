@@ -1,14 +1,15 @@
 /**
- * Async generator function that is supposed to
- *   - add/alter/drop messages flowing through it
- *   - perform side-effects based on messages flowing through it.
+ * Async generator function that is supposed to:
+ *
+ *   - · add/alter/drop messages flowing through it
+ *   - · perform side-effects based on messages flowing through it.
  */
 export interface Stage<TMsg> {
   (input: AsyncIterable<TMsg>): AsyncIterable<TMsg>;
 }
 
 /**
- * Represents sum of multiple `.addStage(…)`'s and/or `.addPipeline(…)`''s
+ * Represents sum of multiple `.addStage(…)`'s and/or `.addPipeline(…)`'s
  * acting on messages `.put(…)` into it. `.fork(…)` can be used to have multiple
  * instances of the same set of `Stage`'s. No stage execution occur unless async
  * iteration happens on the pipeline (and values are `.put(…)` into it).
@@ -26,26 +27,27 @@ export class Pipeline<TMsg> {
   }
   constructor(...stages: Array<Stage<TMsg>>) {
     this._stages = stages;
+    this.put = this.put.bind(this);
   }
-  [Symbol.asyncIterator]() {
+  [Symbol.asyncIterator](): AsyncIterator<TMsg> {
     if (!this._pipelineEnd) this._composeStages();
     return this._pipelineEnd![Symbol.asyncIterator]();
   }
-  addStage(stage: Stage<TMsg>) {
+  addStage(stage: Stage<TMsg>): Pipeline<TMsg> {
     this._pipelineEnd = null;
     this._stages.push(stage);
-    return this; // several `.addStage(…)` can be chained
+    return this; // several `.addStage(…)`'s can be chained
   }
-  addPipeline(pipeline: Pipeline<TMsg>) {
+  addPipeline(pipeline: Pipeline<TMsg>): Pipeline<TMsg> {
     this._pipelineEnd = null;
     this._stages.push(...pipeline._stages);
-    return this; // several `.addPipeline(…)` can be chained
+    return this; // several `.addPipeline(…)`'s can be chained
   }
-  put = (msg: TMsg) => {
+  put(msg: TMsg): void {
     this._pipelineStart.send(msg);
     // `return this` wouldn't allow TypeScript to use `.put` as an event handler
-  };
-  fork() {
+  }
+  fork(): Pipeline<TMsg> {
     return new Pipeline(...this._stages);
   }
 }
@@ -110,6 +112,7 @@ export class AutoRun {
       this.stop = () => {
         this._isStopped = true;
         resolve({ done: true, value: null });
+        return this.stopped;
       };
     });
     return {
@@ -128,24 +131,27 @@ export class AutoRun {
     this.stopped = this._loop(this._makeStoppable(input));
   }
   stopped: Promise<void>;
-  stop() {
-    // implemented in `._makeStoppable()`
+  stop(): Promise<void> {
+    return Promise.reject(); // implemented in `._makeStoppable()`
   }
 }
 
 /**
  * Prevents `AsyncIterable` from being `done` when exiting the loop on it.
  */
-export function protectFromReturn<TMsg>(input: AsyncIterable<TMsg>) {
-  const asyncIter = input[Symbol.asyncIterator]();
-  return {
+export function protectFromReturn<TMsg>(
+  input: AsyncIterable<TMsg>,
+): AsyncIterable<TMsg> {
+  const inputIter = input[Symbol.asyncIterator]();
+  const output: AsyncIterableIterator<TMsg> = {
     next() {
-      return asyncIter.next();
+      return inputIter.next();
     },
     [Symbol.asyncIterator]() {
       return this;
     },
   };
+  return output;
 }
 
 class Channel<TMsg> {
